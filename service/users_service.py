@@ -8,6 +8,7 @@ from entity import Users, Clips, Queries
 
 TIMING = 60
 
+
 class UsersService(object):
     """Usersサービスクラス"""
     def __init__(self):

@@ -25,10 +25,17 @@ class QueryService(object):
 
     def get_or_create(self, query):
         with self.db.atomic():
-            return Queries.get_or_create(user=query.user, query=query.query, defaults={
-                "query_id": query.query_id, "is_active": query.is_active, "is_deleted": query.is_deleted,
-                "created_at": query.created_at, "updated_at": query.updated_at
-            })
+            return Queries.get_or_create(
+                query=query.query,
+                user=query.user,
+                defaults={
+                    "query_id": query.query_id,
+                    "is_active": query.is_active,
+                    "is_deleted": query.is_deleted,
+                    "created_at": query.created_at,
+                    "updated_at": query.updated_at,
+                }
+            )
 
     def bulk_insert(self, queries):
         if not queries:

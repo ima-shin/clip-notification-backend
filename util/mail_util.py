@@ -4,14 +4,13 @@ import urllib.parse
 from email.mime.text import MIMEText
 
 FROM = "kirinuki-noreply@kirinuki-tuti.net"
-HOST = "smtp.kirinuki-tuti.net"
+HOST = os.getenv("MAIL_HOST")
 USERNAME = os.getenv("MAIL_USER")
 PASSWORD = os.getenv("MAIL_PASS")
 
 
-def send_temp_register(to, token):
-    print(token)
-    url = urllib.parse.urljoin(os.getenv("APP_DOMAIN"), f"/auth/signup?{urllib.parse.urlencode({'token': token})}")
+def send_temp_register(to, h=""):
+    url = urllib.parse.urljoin(os.getenv("APP_DOMAIN"), f"/auth/signup?{urllib.parse.urlencode({'token': h})}")
     message = f"""
     <h1>本登録はまだ完了していません</h1>
     <p>メールの受信から1時間以内に以下のURLから本登録を完了してください</p>
@@ -28,9 +27,14 @@ def send_temp_register(to, token):
     mail["From"] = FROM
 
     smtp_client = smtplib.SMTP(HOST, 587, timeout=10)
-    smtp_client.login(USERNAME, PASSWORD)
-    smtp_client.send_message(mail)
-    smtp_client.quit()
+    smtp_client.set_debuglevel(os.getenv('env') != 'prod')
+    try:
+        smtp_client.login(USERNAME, PASSWORD)
+        smtp_client.send_message(mail)
+    except Exception as e:
+        raise Exception(e)
+    finally:
+        smtp_client.quit()
 
 
 def send_complete_register(to):

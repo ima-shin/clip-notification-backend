@@ -21,7 +21,7 @@ def get_user_info():
     current_user_id = identity.get("user_id", None)
     current_user = user_service.find_by_id(current_user_id)
 
-    query = current_user.queries.first()
+    query = current_user.queries.order_by(Queries.updated_at.desc()).first()
     query = query.query if query else None
 
     payload = {
@@ -48,7 +48,6 @@ def update_user_info():
 @jwt_required()
 @content_type("application/json")
 def update_notification_setting():
-    print('update_notification_setting start;')
     identity = get_jwt_identity()
     current_user_id = identity.get("user_id", None)
     user = user_service.find_by_id(current_user_id)
@@ -57,30 +56,42 @@ def update_notification_setting():
     timing = request.json.get('timing', None)
     query = request.json.get('query', None)
 
-    if not any([publish_to, timing, query]):
+    data = {
+        'publish_to': request.json.get('publishTo', None),
+        'timing': request.json.get('timing', None),
+        'query': request.json.get('query', None),
+    }
+
+    if not any([data['publish_to'], data['timing'], data['query']]):
         abort(400)
 
-    if publish_to:
-        user.publish_to = publish_to
-        user.updated_at = datetime.now()
+    save_user_data(user, data)
 
-    if timing:
-        user.publish_timing = timing
-        user.updated_at = datetime.now()
-
-    if query:
-        q = Queries(
-            query_id=digest_util.create_digest(),
-            user=user,
-            is_active=True,
-            is_deleted=False,
-            create_at=datetime.now(),
-            updated_at=datetime.now(),
-        )
-
-        q, created = query_service.get_or_create(q)
-        if created:
-            q.updated_at = datetime.now()
-            query_service.update(q)
+    save_queries(user, query)
 
     return jsonify({'message': 'ok'}), 200
+
+
+def save_user_data(user, data):
+    user.publish_to = data['publish_to']
+    user.publish_timing = data['timing']
+    user.updated_at = datetime.now()
+
+    user_service.update(user)
+
+
+def save_queries(user, query_string):
+    query = Queries(
+        query_id=digest_util.create_digest(),
+        user=user,
+        query=query_string,
+        is_active=True,
+        is_deleted=False,
+        created_at=datetime.now(),
+        updated_at=datetime.now(),
+    )
+
+    q, created = query_service.get_or_create(query)
+    if not created:
+        q.updated_at = datetime.now()
+        query_service.update(q)

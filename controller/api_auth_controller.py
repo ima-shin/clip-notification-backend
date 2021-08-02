@@ -60,17 +60,11 @@ def save_temp_user():
     if not email:
         abort(400)
 
-    exist = user_service.find_by_email(email)
-    if exist:
-        return jsonify(
-            {"status": 200, "message": "User already exists", "type": ApiErrorType.USER_ALREADY_EXISTS.value}
-        ), 200
-
     token = digest_util.create_digest()
 
     temp_user_service.create(email, token)
 
-    mail_util.send_temp_register(to=email, token=token)
+    mail_util.send_temp_register(to=email, h=token)
 
     return jsonify({"status": 200, "message": "OK", "options": None}), 200
 
